@@ -17,6 +17,7 @@ public class User {
 	private Scanner scanner;
 	private Connection conn;
 	private int select;
+	private static int ticketNumber = 3000;
 	
 	public User(Connection conn) {
 		this.conn = conn;
@@ -253,7 +254,8 @@ public class User {
 		int seatingCapacity = 0;
 		int reservedSeatCount = 0;
 		int seatCount = 0;
-		int payment = 0;
+		String movieStartTime = date + "/" + startTime;
+		String payment;
 		
 		try {
 			PreparedStatement pstmt = conn.prepareStatement(
@@ -279,7 +281,7 @@ public class User {
 					+ "AND START_TIME = TO_DATE(?, 'YY/MM/DD/HH24')");
 			pstmt.setString(1, cinemaName);
 			pstmt.setString(2, theaterNumber);
-			pstmt.setString(3, date + "/" + startTime);
+			pstmt.setString(3, movieStartTime);
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) { 
@@ -300,17 +302,21 @@ public class User {
 			System.out.println("예약할 자리 수 : ");
 			seatCount = scanner.nextInt();
 			System.out.println("1. 인터넷 결제, 2. 현장 결제, 3. 예매 취소");
-			payment = scanner.nextInt();
+			select = scanner.nextInt();
 			
-			while(payment < 1 || payment > 3) {
+			while(select < 1 || select > 3) {
 				System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
-				payment = scanner.nextInt();
+				select = scanner.nextInt();
 			}
 			
-			switch(payment) {
+			switch(select) {
 				case 1:
+					payment = "INTERNET";
+					selectPoint(cinemaName, theaterNumber, movieStartTime, seatCount, payment);
 					break;
 				case 2:
+					payment = "DIRECT";
+					pay(cinemaName, theaterNumber, movieStartTime, seatCount, payment, 0);
 					break;
 				case 3:
 					System.out.println("예매를 취소합니다.");
@@ -318,6 +324,128 @@ public class User {
 				default:	
 			}
 		}
+	}
+
+	private void selectPoint(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment) {
+		int availablePoint = 0;
+		int pointToUse = 0;
+		
+		System.out.println("1. 포인트 사용하기, 2. 포인트 사용하지 않기");
+		select = scanner.nextInt();
+		
+		while(select < 1 || select > 2) {
+			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
+			select = scanner.nextInt();
+		}
+		
+		switch(select) {
+			case 1:
+				try {
+					PreparedStatement pstmt = conn.prepareStatement("SELECT CUSTOMER_POINT FROM CUSTOMER WHERE CUSTOMER_ID = ?");
+					pstmt.setString(1, userId);
+					ResultSet rs = pstmt.executeQuery();
+					
+					if(rs.next())
+						availablePoint = rs.getInt(1);
+					
+					if(availablePoint < 1000) {
+						System.out.println("포인트가 부족하여 사용할 수 없습니다.");
+						pointToUse = 0;
+					}
+					
+					else {
+						System.out.println("사용 가능한 포인트 : " + availablePoint);
+						System.out.print("사용할 포인트 : ");
+						pointToUse = scanner.nextInt();
+					}
+					
+					pay(cinemaName, theaterNumber, movieStartTime, seatCount, payment, pointToUse);
+					
+				} catch(SQLException e) {
+					e.printStackTrace();
+				}
+				break;
+			case 2:
+				pointToUse = 0;
+				pay(cinemaName, theaterNumber, movieStartTime, seatCount, payment, pointToUse);
+				break;
+			default:
+		}
+		
+	}
+
+	private void pay(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
+		int price = seatCount * 10000;
+		
+		if(price >= pointToUse)
+			price -= pointToUse;
+		else {
+			pointToUse = price;
+			price = 0;
+		}
+		
+		System.out.println("총액 : " + price);
+		System.out.println("1. 결제, 2. 취소");
+		System.out.print("결제를 하시겠습니까? : ");
+		select = scanner.nextInt();
+		
+		while(select < 1 || select > 2) {
+			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
+			select = scanner.nextInt();
+		}
+		
+		switch(select) {
+			case 1:
+				try{
+					PreparedStatement pstmt = conn.prepareStatement(
+							"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT - ? "
+							+ "WHERE CUSTOMER_ID = ?");
+					pstmt.setInt(1, pointToUse);
+					pstmt.setString(2, userId);
+					int rowCount = pstmt.executeUpdate();
+					if(rowCount == 0)
+						System.out.println("고객 포인트 차감 실패");
+					
+					pstmt = conn.prepareStatement(
+							"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT + ? * 100 "
+							+ "WHERE CUSTOMER_ID = ?");
+					pstmt.setInt(1, seatCount);
+					pstmt.setString(2, userId);
+					rowCount = pstmt.executeUpdate();
+					if(rowCount == 0)
+						System.out.println("고객 포인트 증가 실패");
+					
+					pstmt = conn.prepareStatement(
+							"INSERT INTO TICKET VALUES (?, TO_DATE(?, 'YY/MM/DD/HH24'), ?, ?)");
+					pstmt.setString(1, "T" + ticketNumber);
+					pstmt.setString(2, movieStartTime);
+					pstmt.setInt(3, seatCount);
+					pstmt.setString(4, payment);
+					rowCount = pstmt.executeUpdate();
+					if(rowCount == 0)
+						System.out.println("티켓 정보 삽입 실패");
+					
+					pstmt = conn.prepareStatement(
+							"INSERT INTO RESERVATION VALUES (?, ?, ?, ?)");
+					pstmt.setString(1, userId);
+					pstmt.setString(2, "T" + ticketNumber++);
+					pstmt.setString(3, cinemaName);
+					pstmt.setString(4, theaterNumber);
+					rowCount = pstmt.executeUpdate();
+					if(rowCount == 0)
+						System.out.println("예약 정보 삽입 실패");
+					
+					System.out.println("예매가 완료되었습니다.");
+				} catch(SQLException e) {
+					e.printStackTrace();
+				}
+				break;
+			case 2:
+				System.out.println("결제를 취소합니다.");
+				break;
+			default:
+		}
+		
 	}
 	
 }
