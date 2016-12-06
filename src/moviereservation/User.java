@@ -68,6 +68,7 @@ public class User {
 					selectMovie();
 					break;
 				case 2:
+					checkReservation();
 					break;
 				case 3:
 					break;
@@ -112,6 +113,28 @@ public class User {
 		}
 		
 		selectCinema(movieId);
+	}
+	
+	private void checkReservation(String customer_id){
+		String ticketNumber, startTime, seatCount, payment;
+		String user_id = "jhlee";
+		try {
+
+			ResultSet rs = select(conn, "SELECT * FROM TICKET WHERE PAYMENT = 'X' AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + user_id + "')");
+			System.out.println("예매 현황입니다.");
+			System.out.println("  티켓 번호                         시작 시간                          좌석 수        결제여부 ");
+			while(rs.next()) {
+				ticketNumber = rs.getString(1);
+				startTime = rs.getString(2);
+				seatCount = rs.getString(3);
+				payment = rs.getString(4);
+				
+				System.out.println(" " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+			}
+		} catch (Exception e) {
+			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
+		}
+		
 	}
 
 	private void selectCinema(String movieId) {
