@@ -82,6 +82,64 @@ public class User {
 		}
 	}
 	
+
+	public void signUp(){
+		String userId = "";
+		String userPwd = "";
+		String userName = "";
+		String userBirthday = "";
+		String userPhoneNumber = "";
+		String userAddress = "";
+		int userPoint = 0;
+
+		while (true) {
+			System.out.println("회원가입");
+			System.out.print("ID : ");
+			userId = scanner.nextLine();
+			System.out.print("PW : ");
+			userPwd = scanner.nextLine();
+			System.out.print("Name : ");
+			userName = scanner.nextLine();
+			System.out.print("BirthDay : ");
+			userBirthday = scanner.nextLine();
+			System.out.print("Phone Number : ");
+			userPhoneNumber = scanner.nextLine();
+			System.out.print("Address : ");
+			userAddress = scanner.nextLine();
+			
+			while(true){
+				System.out.println("\n가입을 완료하시겠습니까?");
+				System.out.println("1. 가입완료, 2. 취소");
+				int select = scanner.nextInt();
+				if(select == 1){
+					try {
+						Statement stmt = conn.createStatement();
+						String query = "INSERT INTO CUSTOMER VALUES('"+ userId + "', '" + userPwd + "', '" + userName + "', '" + userBirthday
+								+ "', '" + userPhoneNumber + "', '" + userAddress + "', '" + userPoint + "')";
+						System.out.println(query);
+						int rowCount = stmt.executeUpdate(query);
+						if(rowCount == 0) {
+							System.out.println("데이터 삽입 실패");
+						} else {
+							System.out.println("데이터 삽입 성공");
+							break;
+						}
+					} catch (Exception e) {
+						System.out.println("[*]	INSERT 오류 발생: \n" + e.getMessage());
+					}
+				}
+				else if(select == 2){
+					System.out.println("가입이 취소되었습니다.");
+					break;
+				}
+				else{
+					System.out.println("잘못된 명령입니다.");
+				}
+			}
+			break;			
+		}
+	}
+	
 	public void login() {
 		while(true) {
 			scanner = new Scanner(System.in);

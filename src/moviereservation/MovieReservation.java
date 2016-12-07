@@ -35,6 +35,7 @@ public class MovieReservation {
 
 		Scanner s = new Scanner(System.in);
 		int select;
+
 		while (true) {
 			System.out.println("0, 종료, 1. 회원 로그인, 2. 관리자 로그인, 3. 회원가입");
 			select = s.nextInt();
