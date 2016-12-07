@@ -1,10 +1,7 @@
+package moviereservation;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -19,11 +16,11 @@ public class Admin {
 
 	public Admin(Connection conn) {
 		this.conn = conn;
-		scanner = new Scanner(System.in);
 
 	}
 
 	public void login() throws SQLException {
+		scanner = new Scanner(System.in);
 		String userId = "";
 		String userPwd = "";
 		String query = "";
@@ -267,10 +264,7 @@ public class Admin {
 		int rating;
 		String director;
 		String movInfo;
-		String actor;
-
 		String query;
-
 		int menu = 0;
 
 		System.out.println("\n1. 영화 정보 수정\t 2. 배우 추가\t 3. 배우 삭제\t0. 뒤로가기");

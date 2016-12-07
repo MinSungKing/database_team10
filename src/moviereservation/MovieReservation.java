@@ -11,8 +11,8 @@ public class MovieReservation {
 	public static void main(String[] args) {
 		String DRIVER = "oracle.jdbc.driver.OracleDriver";
 		String URL = "jdbc:oracle:thin:@127.0.0.1:1521:DBSERVER";
-		String USER = "KWON";
-		String PASS = "flrhs00";
+		String USER = "KIM";
+		String PASS = "KIM";
 
 		Connection conn = null;
 		try{
@@ -45,7 +45,11 @@ public class MovieReservation {
 				user.login();
 				break;
 			case 2:
-				admin.excute();
+				try {
+					admin.login();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
 				break;
 			case 3:
 				user.signUp();
