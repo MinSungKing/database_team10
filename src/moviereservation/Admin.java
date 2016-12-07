@@ -954,8 +954,13 @@ public class Admin {
 			if (i == 0) {
 				try {
 					Statement stmt = conn.createStatement();
+					String startTime;
+					if(timeForAdd < 10)
+						startTime = "0" + timeForAdd;
+					else
+						startTime = "" + timeForAdd;
 					String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber + "', '"
-							+ timeForAdd + "')";
+							+ startTime + "')";
 					System.out.println(query);
 					int rowCount = stmt.executeUpdate(query);
 					if (rowCount == 0) {
@@ -973,9 +978,14 @@ public class Admin {
 						if (index == 0) {
 							if ((startTimeList[index] - timeForAdd) * 60 - runningTime > 0) {
 								try {
+									String startTime;
+									if(timeForAdd < 10)
+										startTime = "0" + timeForAdd;
+									else
+										startTime = "" + timeForAdd;
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + timeForAdd + "')";
+											+ "', '" + startTime + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -994,9 +1004,14 @@ public class Admin {
 							if ((startTimeList[index] - timeForAdd) * 60 - runningTime > 0
 									&& (timeForAdd - startTimeList[index - 1]) * 60 - runningTime > 0) {
 								try {
+									String startTime;
+									if(timeForAdd < 10)
+										startTime = "0" + timeForAdd;
+									else
+										startTime = "" + timeForAdd;
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + timeForAdd + "')";
+											+ "', '" + startTime + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -1016,22 +1031,31 @@ public class Admin {
 					}
 				}
 				if(index == i && !insert){
-					try {
-						Statement stmt = conn.createStatement();
-						String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-								+ "', '" + timeForAdd + "')";
-						System.out.println(query);
-						int rowCount = stmt.executeUpdate(query);
-						if (rowCount == 0) {
-							System.out.println("데이터 삽입 실패");
-						} else {
-							System.out.println("데이터 삽입 성공");
-							insert = true;
-						}
-					} catch (Exception e) {
-						System.out.println("[*]   INSERT 오류 발생: \n" + e.getMessage());
-					}
-				}
+		               if ((timeForAdd - startTimeList[index-1]) * 60 - runningTime > 0) {
+		                  try {
+		                	  String startTime;
+		  					if(timeForAdd < 10)
+		  						startTime = "0" + timeForAdd;
+		  					else
+		  						startTime = "" + timeForAdd;
+		                     Statement stmt = conn.createStatement();
+		                     String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
+		                           + "', '" + startTime+ "')";
+		                     System.out.println(query);
+		                     int rowCount = stmt.executeUpdate(query);
+		                     if (rowCount == 0) {
+		                        System.out.println("데이터 삽입 실패");
+		                     } else {
+		                        System.out.println("데이터 삽입 성공");
+		                        insert = true;
+		                     }
+		                  } catch (Exception e) {
+		                     System.out.println("[*]   INSERT 오류 발생: \n" + e.getMessage());
+		                  }
+		               } else {
+		                  System.out.println("다른 상영시간과 겹칩니다.");
+		               }
+		            }
 			}
 		} catch (Exception e) {
 			System.out.println("[*]   질의 결과 출력 오류 발생: \n" + e.getMessage());

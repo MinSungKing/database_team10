@@ -16,8 +16,7 @@ public class User {
 	private String userPwd;
 	private Scanner scanner;
 	private Connection conn;
-	private int select;
-	private static int ticketNumber = 3000;
+	private static int ticketNumber = 3004;
 	
 	public User(Connection conn) {
 		this.conn = conn;
@@ -119,20 +118,20 @@ public class User {
 	private void userManu() {
 		while(true) {
 			System.out.println("0. 종료, 1. 영화 예매, 2. 예매 현황, 3. 영화 검색, 4. 회원 정보 수정");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			switch(select) {
 				case 1:
 					selectMovie();
 					break;
 				case 2:
-					checkReservation(userId);
+					checkReservation();
 					break;
 				case 3:
 					searchMovieInfo();
 					break;
 				case 4:
-					updateCustomerInfo(userId);
+					updateCustomerInfo();
 					break;
 				default:	
 			}
@@ -158,7 +157,7 @@ public class User {
 			}
 			
 			System.out.print("예매할 영화 번호 : ");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			while(0 >= select || select >= movieNumber) {
 				System.out.print("잘못된 번호입니다. 다시 입력하세요. : ");
@@ -194,12 +193,22 @@ public class User {
 	}
 	
 	
-	private void checkReservation(String customer_id){
-		String ticketNumber, startTime, seatCount, payment;
-		String user_id = "jhlee";
+	private void checkReservation(){
+		int number = 1;
+		String ticketNumber, seatCount, payment;
+		String startTime;
+		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/");
+		ArrayList<String> ticketNumberList = new ArrayList<>();
+		ticketNumberList.add(null);
+		ArrayList<String> dateList = new ArrayList<>();
+		dateList.add(null);
+		ArrayList<Integer> seatCountList = new ArrayList<>();
+		seatCountList.add(null);
+		
 		try {
 
-			ResultSet rs = select(conn, "SELECT * FROM TICKET WHERE PAYMENT = 'X' AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + user_id + "')");
+			ResultSet rs = select(conn, "SELECT * FROM TICKET WHERE (PAYMENT = 'INTERNET' OR PAYMENT = 'DIRECT') "
+					+ "AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + userId + "')");
 			System.out.println("예매 현황입니다.");
 			System.out.println("  티켓 번호                         시작 시간                          좌석 수        결제여부 ");
 			while(rs.next()) {
@@ -207,14 +216,175 @@ public class User {
 				startTime = rs.getString(2);
 				seatCount = rs.getString(3);
 				payment = rs.getString(4);
-				
-				System.out.println(" " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+				ticketNumberList.add(ticketNumber);
+				dateList.add(format.format(rs.getDate(2)));
+				seatCountList.add(rs.getInt(3));
+				System.out.println(number++ + ". " + " " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
 			}
 		} catch (Exception e) {
 			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
 		}
+		
+		System.out.println("0. 종료, 1. 예약 정보 수정");
+		int select = scanner.nextInt();
+		
+		while(select < 0 || select > 1) {
+			System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
+			select = scanner.nextInt();
+		}
+		
+		if(select == 1) {
+			System.out.println("수정할 티켓 번호를 선택해 주세요.");
+			select = scanner.nextInt();
+			
+			while(select < 1 || select >= number) {
+				System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
+				select = scanner.nextInt();
+			}
+			
+			fixReservation(ticketNumberList.get(select), dateList.get(select), seatCountList.get(select));
+		}
 	}
 	
+
+	private void fixReservation(String ticketNumber, String date, int seatCount) {
+		int number = 1;
+		String cinemaName = null;
+		ArrayList<String> theaterList = new ArrayList<>();
+		theaterList.add(null);
+		ArrayList<String> startTimeList = new ArrayList<>();
+		startTimeList.add(null);
+		
+		try {
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT T.THEATER_NUMBER, T.CINEMA_NAME FROM RESERVATION R, THEATER T "
+					+ "WHERE R.TICKET_NUMBER = ? AND T.CINEMA_NAME = R.CINEMA_NAME");
+			pstmt.setString(1, ticketNumber);
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				theaterList.add(rs.getString(1));
+				cinemaName = rs.getString(2);
+				System.out.println(number++ + ". " + rs.getString(1));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("상영관을 선택해 주세요.");
+		int select = scanner.nextInt();
+		
+		while(select < 1 || select >= number) {
+			System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
+			select = scanner.nextInt();
+		}
+		
+		String theaterNumber = theaterList.get(select);
+		number = 1;
+		try {
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT START_TIME FROM SCHEDULE "
+					+ "WHERE CINEMA_NAME = ? AND THEATER_NUMBER = ?");
+			pstmt.setString(1, cinemaName);
+			pstmt.setString(2, theaterNumber);
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				startTimeList.add(rs.getString(1));
+				System.out.println(number++ + ". " + rs.getString(1));
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		
+		System.out.println("시간을 선택해 주세요.");
+		select = scanner.nextInt();
+		
+		while(select < 1 || select >= number) {
+			System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
+			select = scanner.nextInt();
+		}
+		
+		String movieStartTime = date + startTimeList.get(select);
+		int seatingCapacity = 0;
+		int reservedSeatCount = 0;
+		
+		try {
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT SEATING_CAPACITY FROM THEATER "
+					+ "WHERE CINEMA_NAME = ? AND THEATER_NUMBER = ?");
+			pstmt.setString(1, cinemaName);
+			pstmt.setString(2, theaterNumber);
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) 
+				seatingCapacity = Integer.parseInt(rs.getString(1));
+			
+		} catch(SQLException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT SUM(SEAT_COUNT) FROM TICKET "
+					+ "WHERE TICKET_NUMBER IN "
+					+ "(SELECT TICKET_NUMBER FROM RESERVATION "
+					+ "WHERE CINEMA_NAME = ? AND THEATER_NUMBER = ?) "
+					+ "AND START_TIME = TO_DATE(?, 'YY/MM/DD/HH24')");
+			pstmt.setString(1, cinemaName);
+			pstmt.setString(2, theaterNumber);
+			pstmt.setString(3, movieStartTime);
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) { 
+				if(rs.getString(1) == null)
+					reservedSeatCount = 0;
+				else
+					reservedSeatCount = Integer.parseInt(rs.getString(1));
+			}
+			
+		} catch(SQLException e) {
+			e.printStackTrace();
+		}
+		
+		if(seatingCapacity - reservedSeatCount < seatCount)
+			System.out.println("예약 가능한 자리가 없습니다.");
+		else {
+			try{
+				PreparedStatement pstmt = conn.prepareStatement(
+						"UPDATE TICKET SET START_TIME = TO_DATE(?, 'YY/MM/DD/HH24'), SEAT_COUNT = ? "
+								+ "WHERE TICKET_NUMBER = ?");
+				
+				pstmt.setString(1, movieStartTime);
+				pstmt.setInt(2, seatCount);
+				pstmt.setString(3, ticketNumber);
+				int rowCount = pstmt.executeUpdate();
+				if(rowCount == 0)
+					System.out.println("티켓 정보 수정 실패");
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+			
+			try{
+				PreparedStatement pstmt = conn.prepareStatement(
+						"UPDATE RESERVATION SET THEATER_NUMBER = ? "
+								+ "WHERE TICKET_NUMBER = ?");
+				
+				pstmt.setString(1,theaterNumber);
+				pstmt.setString(2, ticketNumber);
+				int rowCount = pstmt.executeUpdate();
+				if(rowCount == 0)
+					System.out.println("예매 정보 수정 실패");
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+			
+			System.out.println("예매 정보가 성공적으로 수정되었습니다.");
+		}
+	}
+
 
 	private void searchMovieInfo() {		
 		String movieTitle = "";
@@ -300,7 +470,7 @@ public class User {
 	}
 	
 
-	public void updateCustomerInfo(String customer_id) {
+	public void updateCustomerInfo() {
 		int select;
 		
 		while(true){
@@ -326,7 +496,7 @@ public class User {
 									"UPDATE CUSTOMER SET CUSTOMER_PASSWORD = ? WHERE CUSTOMER_ID = ?");
 							
 							pstmt.setString(1, newDate);
-							pstmt.setString(2, customer_id);
+							pstmt.setString(2, userId);
 							
 							int rowCount = pstmt.executeUpdate();
 							if(rowCount == 0) {
@@ -350,7 +520,7 @@ public class User {
 									"UPDATE CUSTOMER SET PHONE_NUMBER = ? WHERE CUSTOMER_ID = ?");
 							
 							pstmt.setString(1, newDate);
-							pstmt.setString(2, customer_id);
+							pstmt.setString(2, userId);
 							
 							int rowCount = pstmt.executeUpdate();
 							if(rowCount == 0) {
@@ -373,7 +543,7 @@ public class User {
 									"UPDATE CUSTOMER SET ADDRESS = ? WHERE CUSTOMER_ID = ?");
 							
 							pstmt.setString(1, newDate);
-							pstmt.setString(2, customer_id);
+							pstmt.setString(2, userId);
 							
 							int rowCount = pstmt.executeUpdate();
 							if(rowCount == 0) {
@@ -401,7 +571,7 @@ public class User {
 					if(select == 1){
 						try {
 							Statement stmt = conn.createStatement();
-							String query = "DELETE FROM CUSTOMER WHERE CUSTOMER_ID = '" + customer_id + "' ";
+							String query = "DELETE FROM CUSTOMER WHERE CUSTOMER_ID = '" + userId + "' ";
 							int rowCount = stmt.executeUpdate(query);
 							if(rowCount == 0) {
 								System.out.println("데이터 삭제 실패");
@@ -437,7 +607,7 @@ public class User {
 				
 		try {
 			PreparedStatement pstmt = conn.prepareStatement(
-					"SELECT CINEMA_NAME FROM THEATER "
+					"SELECT DISTINCT CINEMA_NAME FROM THEATER "
 					+ "WHERE MOVIE_ID = ?");
 			pstmt.setString(1, movieId);
 			ResultSet rs = pstmt.executeQuery();
@@ -448,7 +618,7 @@ public class User {
 			}
 			
 			System.out.print("예매할 영화관 번호 : ");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			while(0 >= select || select >= cinemaNumber) {
 				System.out.print("잘못된 번호입니다. 다시 입력하세요. : ");
@@ -481,7 +651,7 @@ public class User {
 		}
 		
 		System.out.print("예매할 날짜 번호 : ");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
 		
 		while(0 >= select || select >= dateNumber) {
 			System.out.print("잘못된 번호입니다. 다시 입력하세요. : ");
@@ -513,7 +683,7 @@ public class User {
 			}
 			
 			System.out.print("예매할 상영관 번호 : ");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			while(0 >= select || select >= Number) {
 				System.out.print("잘못된 번호입니다. 다시 입력하세요. : ");
@@ -549,7 +719,7 @@ public class User {
 			}
 			
 			System.out.print("예매할 시간 번호 : ");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			while(0 >= select || select >= Number) {
 				System.out.print("잘못된 번호입니다. 다시 입력하세요. : ");
@@ -616,8 +786,13 @@ public class User {
 			System.out.println("예약 가능한 자리 : " + (seatingCapacity - reservedSeatCount));
 			System.out.println("예약할 자리 수 : ");
 			seatCount = scanner.nextInt();
+			
+			if(seatCount < 1 || seatCount > (seatingCapacity - reservedSeatCount)) {
+				System.out.println("잘못된 명령입니다. 다시 입력하세요. : ");
+				seatCount = scanner.nextInt();
+			}
 			System.out.println("1. 인터넷 결제, 2. 현장 결제, 3. 예매 취소");
-			select = scanner.nextInt();
+			int select = scanner.nextInt();
 			
 			while(select < 1 || select > 3) {
 				System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
@@ -630,7 +805,7 @@ public class User {
 					selectPoint(cinemaName, theaterNumber, movieStartTime, seatCount, payment);
 					break;
 				case 2:
-					payment = "X";
+					payment = "DIRECT";
 					reservate(cinemaName, theaterNumber, movieStartTime, seatCount, payment, 0);
 					break;
 				case 3:
@@ -646,7 +821,7 @@ public class User {
 		int pointToUse = 0;
 		
 		System.out.println("1. 포인트 사용하기, 2. 포인트 사용하지 않기");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
 		
 		while(select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
@@ -682,7 +857,7 @@ public class User {
 				break;
 			case 2:
 				pointToUse = 0;
-				pay(cinemaName, theaterNumber, movieStartTime, seatCount, payment, pointToUse);
+				reservate(cinemaName, theaterNumber, movieStartTime, seatCount, payment, pointToUse);
 				break;
 			default:
 		}
@@ -702,7 +877,7 @@ public class User {
 		System.out.println("총액 : " + price);
 		System.out.println("1. 결제, 2. 취소");
 		System.out.print("결제를 하시겠습니까? : ");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
 
 		while (select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
@@ -724,7 +899,9 @@ public class User {
 	private void reservate(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
 		System.out.println("1. 예매, 2. 취소");
 		System.out.print("예매를 하시겠습니까? : ");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
+		PreparedStatement pstmt;
+		int rowCount;
 		
 		while(select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
@@ -734,23 +911,25 @@ public class User {
 		switch(select) {
 			case 1:
 				try{
-					PreparedStatement pstmt = conn.prepareStatement(
-							"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT - ? "
-							+ "WHERE CUSTOMER_ID = ?");
-					pstmt.setInt(1, pointToUse);
-					pstmt.setString(2, userId);
-					int rowCount = pstmt.executeUpdate();
-					if(rowCount == 0)
-						System.out.println("고객 포인트 차감 실패");
-					
-					pstmt = conn.prepareStatement(
-							"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT + ? * 100 "
-							+ "WHERE CUSTOMER_ID = ?");
-					pstmt.setInt(1, seatCount);
-					pstmt.setString(2, userId);
-					rowCount = pstmt.executeUpdate();
-					if(rowCount == 0)
-						System.out.println("고객 포인트 증가 실패");
+					if(payment.equals("INTERNET")){
+						pstmt = conn.prepareStatement(
+								"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT - ? "
+										+ "WHERE CUSTOMER_ID = ?");
+						pstmt.setInt(1, pointToUse);
+						pstmt.setString(2, userId);
+						rowCount = pstmt.executeUpdate();
+						if(rowCount == 0)
+							System.out.println("고객 포인트 차감 실패");
+						
+						pstmt = conn.prepareStatement(
+								"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT + ? * 100 "
+										+ "WHERE CUSTOMER_ID = ?");
+						pstmt.setInt(1, seatCount);
+						pstmt.setString(2, userId);
+						rowCount = pstmt.executeUpdate();
+						if(rowCount == 0)
+							System.out.println("고객 포인트 증가 실패");
+					}
 					
 					pstmt = conn.prepareStatement(
 							"INSERT INTO TICKET VALUES (?, TO_DATE(?, 'YY/MM/DD/HH24'), ?, ?)");
