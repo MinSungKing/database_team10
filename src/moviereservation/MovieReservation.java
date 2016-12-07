@@ -13,7 +13,7 @@ public class MovieReservation {
 		String URL = "jdbc:oracle:thin:@127.0.0.1:1521:DBSERVER";
 		String USER = "KWON";
 		String PASS = "flrhs00";
-		
+
 		Connection conn = null;
 		try{
 			Class.forName(DRIVER);
@@ -31,18 +31,30 @@ public class MovieReservation {
 		}
 		
 		User user = new User(conn);
+		Admin admin = new Admin(conn);
+
 		Scanner s = new Scanner(System.in);
 		int select;
+		
+		
 		System.out.println("1. 회원 로그인, 2. 관리자 로그인, 3. 회원가입");
 		select = s.nextInt();
+		
 		
 		switch(select) {
 			case 1:
 				user.login();
 				break;
 			case 2:
+			try {
+				admin.login();
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 				break;
 			case 3:
+				user.signUp();
 				break;
 			default :
 				
