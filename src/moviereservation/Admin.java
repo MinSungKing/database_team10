@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Admin {
-
+	
 	private Statement stmt;
 	ResultSet rs;
 	private Scanner scanner;
@@ -16,7 +16,6 @@ public class Admin {
 
 	public Admin(Connection conn) {
 		this.conn = conn;
-
 	}
 
 	public void login() throws SQLException {
@@ -954,13 +953,8 @@ public class Admin {
 			if (i == 0) {
 				try {
 					Statement stmt = conn.createStatement();
-					String startTime;
-					if(timeForAdd < 10)
-						startTime = "0" + timeForAdd;
-					else
-						startTime = "" + timeForAdd;
 					String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber + "', '"
-							+ startTime + "')";
+							+ timeForAdd + "')";
 					System.out.println(query);
 					int rowCount = stmt.executeUpdate(query);
 					if (rowCount == 0) {
@@ -972,20 +966,14 @@ public class Admin {
 					System.out.println("[*]   INSERT 오류 발생: \n" + e.getMessage());
 				}
 			} else {
-
 				for (index = 0; index < i; index++) {
 					if (startTimeList[index] > timeForAdd) {
 						if (index == 0) {
 							if ((startTimeList[index] - timeForAdd) * 60 - runningTime > 0) {
 								try {
-									String startTime;
-									if(timeForAdd < 10)
-										startTime = "0" + timeForAdd;
-									else
-										startTime = "" + timeForAdd;
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + startTime + "')";
+											+ "', '" + timeForAdd + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -1004,14 +992,9 @@ public class Admin {
 							if ((startTimeList[index] - timeForAdd) * 60 - runningTime > 0
 									&& (timeForAdd - startTimeList[index - 1]) * 60 - runningTime > 0) {
 								try {
-									String startTime;
-									if(timeForAdd < 10)
-										startTime = "0" + timeForAdd;
-									else
-										startTime = "" + timeForAdd;
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + startTime + "')";
+											+ "', '" + timeForAdd + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -1031,31 +1014,26 @@ public class Admin {
 					}
 				}
 				if(index == i && !insert){
-		               if ((timeForAdd - startTimeList[index-1]) * 60 - runningTime > 0) {
-		                  try {
-		                	  String startTime;
-		  					if(timeForAdd < 10)
-		  						startTime = "0" + timeForAdd;
-		  					else
-		  						startTime = "" + timeForAdd;
-		                     Statement stmt = conn.createStatement();
-		                     String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-		                           + "', '" + startTime+ "')";
-		                     System.out.println(query);
-		                     int rowCount = stmt.executeUpdate(query);
-		                     if (rowCount == 0) {
-		                        System.out.println("데이터 삽입 실패");
-		                     } else {
-		                        System.out.println("데이터 삽입 성공");
-		                        insert = true;
-		                     }
-		                  } catch (Exception e) {
-		                     System.out.println("[*]   INSERT 오류 발생: \n" + e.getMessage());
-		                  }
-		               } else {
-		                  System.out.println("다른 상영시간과 겹칩니다.");
-		               }
-		            }
+					if ((timeForAdd - startTimeList[index-1]) * 60 - runningTime > 0) {
+						try {
+							Statement stmt = conn.createStatement();
+							String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
+									+ "', '" + timeForAdd + "')";
+							System.out.println(query);
+							int rowCount = stmt.executeUpdate(query);
+							if (rowCount == 0) {
+								System.out.println("데이터 삽입 실패");
+							} else {
+								System.out.println("데이터 삽입 성공");
+								insert = true;
+							}
+						} catch (Exception e) {
+							System.out.println("[*]   INSERT 오류 발생: \n" + e.getMessage());
+						}
+					} else {
+						System.out.println("다른 상영시간과 겹칩니다.");
+					}
+				}
 			}
 		} catch (Exception e) {
 			System.out.println("[*]   질의 결과 출력 오류 발생: \n" + e.getMessage());
@@ -1071,31 +1049,155 @@ public class Admin {
 		scanner.nextLine();
 		ticketNumber = scanner.nextLine();
 
-		String query = "SELECT PAYMENT FROM TICKET WHERE TICKET_NUMBER='" + ticketNumber + "'";
+		String query = "SELECT PAYMENT, SEAT_COUNT FROM TICKET WHERE TICKET_NUMBER='" + ticketNumber + "'";
 
 		try {
 			rs = stmt.executeQuery(query);
 			rs.next();
+			
+			String payment = rs.getString(1);
+			int seatCount = rs.getInt(2);
+			query = "SELECT * FROM RESERVATION WHERE TICKET_NUMBER = '" + ticketNumber + "'";
 
-			String pay = rs.getString(1);
-
-			switch (pay) {
+			rs = stmt.executeQuery(query);
+			rs.next();
+			
+			String userId = rs.getString(1);			
+			String cinemaName = rs.getString(3);
+			String theaterNumber = rs.getString(4);
+			
+			query = "SELECT PRICE FROM THEATER WHERE CINEMA_NAME = '" + cinemaName
+					+ "' AND THEATER_NUMBER = '" + theaterNumber +"'";
+			
+			rs = stmt.executeQuery(query);
+			rs.next();
+			int price = rs.getInt(1);
+			
+			switch (payment) {
 			case "X":
-				query = "UPDATE TICKET SET PAYMENT='DIRECT' WHERE TICKET_NUMBER='" + ticketNumber + "'";
-				stmt.executeQuery(query);
-				System.out.println("티켓이 발권되었습니다.");
-				break;
+				System.out.println("이미 발권된 티켓입니다.");
+				break;	
 			case "INTERNET":
+				System.out.println("결제 완료된 티켓입니다.");
 				System.out.println("티켓이 발권되었습니다.");
+				query = "UPDATE TICKET SET PAYMENT='X' WHERE TICKET_NUMBER='" + ticketNumber + "'";
+				stmt.executeQuery(query);
 				break;
 			case "DIRECT":
-				System.out.println("이미 발권된 티켓입니다.");
+				System.out.println("결제가 완료되지 않은 티켓입니다. 현장결제를 진행합니다.");
+				System.out.println("\n총액 : " + price * seatCount);
+				System.out.println("1. 결제, 2. 취소");
+				System.out.println("결제를 하시겠습니까? : ");
+				
+				
+				while(true){
+					int select = scanner.nextInt();
+					
+					if(select == 1){
+						selectPoint(price * seatCount, userId);
+						query = "UPDATE TICKET SET PAYMENT='X' WHERE TICKET_NUMBER='" + ticketNumber + "'";
+						stmt.executeQuery(query);
+						break;
+					}
+					else if(select == 2){
+						System.out.println("결제가 취소됩니다.");
+						break;
+					}
+					else{
+						System.out.println("잘못된 입력입니다.");
+					}
+				}
+
+
 				break;
 			}
 		} catch (Exception e) {
-			System.out.println("없는 티켓 번호입니다.");
+			System.out.println("없는 티켓 번호입니다." + e.getMessage());
 		}
 		adminMenu();
+	}
+	
+	private void selectPoint(int price, String userId) {
+		int availablePoint = 0;
+		int pointToUse = 0;
+		
+		int select = 0;
+		
+		System.out.println("1. 포인트 사용하기, 2. 포인트 사용하지 않기");
+		select = scanner.nextInt();
+		
+		while(select < 1 || select > 2) {
+			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
+			select = scanner.nextInt();
+		}
+		
+		switch(select) {
+			case 1:
+				try {
+					
+					String query = "SELECT CUSTOMER_POINT FROM CUSTOMER WHERE CUSTOMER_ID = '" + userId + "'";
+					
+					rs = stmt.executeQuery(query);
+					
+					rs.next();
+					availablePoint = rs.getInt(1);
+					System.out.println("사용 가능한 포인트 : " + availablePoint);
+					if(availablePoint < 1000) {
+						System.out.println("포인트가 부족하여 사용할 수 없습니다.");
+						pointToUse = 0;
+					}
+					
+					else {
+						System.out.print("사용할 포인트 : ");
+						pointToUse = scanner.nextInt();
+					}
+					
+					pay(price, pointToUse);
+					
+				} catch(SQLException e) {
+					e.printStackTrace();
+				}
+				
+				break;
+			case 2:
+				pointToUse = 0;
+				pay(price, pointToUse);
+				break;
+			default:
+		}
+		
+	}
+	
+	private void pay(int priceForPay, int pointToUse) {
+		int price = priceForPay;
+		if (price >= pointToUse)
+			price -= pointToUse;
+		else {
+			pointToUse = price;
+			price = 0;
+		}
+		
+		int select = 0;
+
+		System.out.println("총액 : " + price);
+		System.out.println("1. 결제, 2. 취소");
+		System.out.print("결제를 하시겠습니까? : ");
+		select = scanner.nextInt();
+
+		while (select < 1 || select > 2) {
+			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
+			select = scanner.nextInt();
+		}
+		
+		switch(select) {
+		case 1:
+			System.out.println("결제가 완료되었습니다.");
+			break;
+		case 2:
+			System.out.println("결제를 취소합니다.");
+			break;
+		default:
+	}
 	}
 
 }
