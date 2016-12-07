@@ -31,21 +31,28 @@ public class MovieReservation {
 		}
 		
 		User user = new User(conn);
+		Admin admin = new Admin(conn);
 		Scanner s = new Scanner(System.in);
 		int select;
-		System.out.println("1. 회원 로그인, 2. 관리자 로그인, 3. 회원가입");
-		select = s.nextInt();
-		
-		switch(select) {
+		while (true) {
+			System.out.println("0, 종료, 1. 회원 로그인, 2. 관리자 로그인, 3. 회원가입");
+			select = s.nextInt();
+			
+			switch (select) {
 			case 1:
 				user.login();
 				break;
 			case 2:
+				admin.excute();
 				break;
 			case 3:
 				break;
-			default :
-				
+			default:
+
+			}
+			
+			if(select == 0)
+				break;
 		}
 		
 		s.close();

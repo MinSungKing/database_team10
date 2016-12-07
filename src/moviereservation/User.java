@@ -21,11 +21,11 @@ public class User {
 	
 	public User(Connection conn) {
 		this.conn = conn;
-		scanner = new Scanner(System.in);
 	}
 	
 	public void login() {
 		while(true) {
+			scanner = new Scanner(System.in);
 			System.out.println("회원 로그인");
 			System.out.print("ID : ");
 			userId = scanner.nextLine();
@@ -275,7 +275,7 @@ public class User {
 		try {
 			PreparedStatement pstmt = conn.prepareStatement(
 					"SELECT SUM(SEAT_COUNT) FROM TICKET "
-					+ "WHERE TICKET_NUMBER = "
+					+ "WHERE TICKET_NUMBER IN "
 					+ "(SELECT TICKET_NUMBER FROM RESERVATION "
 					+ "WHERE CINEMA_NAME = ? AND THEATER_NUMBER = ?) "
 					+ "AND START_TIME = TO_DATE(?, 'YY/MM/DD/HH24')");
@@ -315,8 +315,8 @@ public class User {
 					selectPoint(cinemaName, theaterNumber, movieStartTime, seatCount, payment);
 					break;
 				case 2:
-					payment = "DIRECT";
-					pay(cinemaName, theaterNumber, movieStartTime, seatCount, payment, 0);
+					payment = "X";
+					reservate(cinemaName, theaterNumber, movieStartTime, seatCount, payment, 0);
 					break;
 				case 3:
 					System.out.println("예매를 취소합니다.");
@@ -373,20 +373,42 @@ public class User {
 		}
 		
 	}
-
+	
 	private void pay(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
 		int price = seatCount * 10000;
-		
-		if(price >= pointToUse)
+
+		if (price >= pointToUse)
 			price -= pointToUse;
 		else {
 			pointToUse = price;
 			price = 0;
 		}
-		
+
 		System.out.println("총액 : " + price);
 		System.out.println("1. 결제, 2. 취소");
 		System.out.print("결제를 하시겠습니까? : ");
+		select = scanner.nextInt();
+
+		while (select < 1 || select > 2) {
+			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
+			select = scanner.nextInt();
+		}
+		
+		switch(select) {
+		case 1:
+			System.out.println("결제가 완료되었습니다.");
+			reservate(cinemaName, theaterNumber, movieStartTime, seatCount, payment, pointToUse);
+			break;
+		case 2:
+			System.out.println("결제를 취소합니다.");
+			break;
+		default:
+	}
+	}
+
+	private void reservate(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
+		System.out.println("1. 예매, 2. 취소");
+		System.out.print("예매를 하시겠습니까? : ");
 		select = scanner.nextInt();
 		
 		while(select < 1 || select > 2) {
@@ -441,7 +463,7 @@ public class User {
 				}
 				break;
 			case 2:
-				System.out.println("결제를 취소합니다.");
+				System.out.println("예매를 취소합니다.");
 				break;
 			default:
 		}
