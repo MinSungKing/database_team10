@@ -3,6 +3,7 @@ package moviereservation;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -21,6 +22,64 @@ public class User {
 	
 	public User(Connection conn) {
 		this.conn = conn;
+	}
+	
+
+	public void signUp(){
+		String userId = "";
+		String userPwd = "";
+		String userName = "";
+		String userBirthday = "";
+		String userPhoneNumber = "";
+		String userAddress = "";
+		int userPoint = 0;
+
+		while (true) {
+			System.out.println("회원가입");
+			System.out.print("ID : ");
+			userId = scanner.nextLine();
+			System.out.print("PW : ");
+			userPwd = scanner.nextLine();
+			System.out.print("Name : ");
+			userName = scanner.nextLine();
+			System.out.print("BirthDay : ");
+			userBirthday = scanner.nextLine();
+			System.out.print("Phone Number : ");
+			userPhoneNumber = scanner.nextLine();
+			System.out.print("Address : ");
+			userAddress = scanner.nextLine();
+			
+			while(true){
+				System.out.println("\n가입을 완료하시겠습니까?");
+				System.out.println("1. 가입완료, 2. 취소");
+				int select = scanner.nextInt();
+				if(select == 1){
+					try {
+						Statement stmt = conn.createStatement();
+						String query = "INSERT INTO CUSTOMER VALUES('"+ userId + "', '" + userPwd + "', '" + userName + "', '" + userBirthday
+								+ "', '" + userPhoneNumber + "', '" + userAddress + "', '" + userPoint + "')";
+						System.out.println(query);
+						int rowCount = stmt.executeUpdate(query);
+						if(rowCount == 0) {
+							System.out.println("데이터 삽입 실패");
+						} else {
+							System.out.println("데이터 삽입 성공");
+							break;
+						}
+					} catch (Exception e) {
+						System.out.println("[*]	INSERT 오류 발생: \n" + e.getMessage());
+					}
+				}
+				else if(select == 2){
+					System.out.println("가입이 취소되었습니다.");
+					break;
+				}
+				else{
+					System.out.println("잘못된 명령입니다.");
+				}
+			}
+			break;			
+		}
 	}
 	
 	public void login() {
@@ -68,10 +127,13 @@ public class User {
 					selectMovie();
 					break;
 				case 2:
+					checkReservation(userId);
 					break;
 				case 3:
+					searchMovieInfo();
 					break;
 				case 4:
+					updateCustomerInfo(userId);
 					break;
 				default:	
 			}
@@ -112,6 +174,266 @@ public class User {
 		}
 		
 		selectCinema(movieId);
+	}
+	
+
+	private ResultSet select(Connection conn, String query) {
+		Statement stmt = null;
+		ResultSet rs = null;
+		ResultSetMetaData rsMeta = null;
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			rsMeta = rs.getMetaData();
+			
+			// 질의 결과 반환
+			return rs;
+		} catch (Exception e) {
+			System.out.println("[*]	SELECT 오류 발생: \n" + e.getMessage());
+		}
+		
+		return rs;
+	}
+	
+	
+	private void checkReservation(String customer_id){
+		String ticketNumber, startTime, seatCount, payment;
+		String user_id = "jhlee";
+		try {
+
+			ResultSet rs = select(conn, "SELECT * FROM TICKET WHERE PAYMENT = 'X' AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + user_id + "')");
+			System.out.println("예매 현황입니다.");
+			System.out.println("  티켓 번호                         시작 시간                          좌석 수        결제여부 ");
+			while(rs.next()) {
+				ticketNumber = rs.getString(1);
+				startTime = rs.getString(2);
+				seatCount = rs.getString(3);
+				payment = rs.getString(4);
+				
+				System.out.println(" " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+			}
+		} catch (Exception e) {
+			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
+		}
+	}
+	
+
+	private void searchMovieInfo() {		
+		String movieTitle = "";
+		String[] movieIdList = new String[50];
+		int i = 1;
+		try {
+			
+			ResultSet rs = select(conn,
+					"SELECT * FROM MOVIE ORDER BY (SELECT SUM(SEAT_COUNT) "
+					+ "FROM RESERVATION R, MOVIE M, THEATER T, TICKET K "
+					+ "WHERE M.MOVIE_ID = T.MOVIE_ID "
+					+ "AND T.CINEMA_NAME = R.CINEMA_NAME AND T.THEATER_NUMBER = R.THEATER_NUMBER "
+					+ "AND R.TICKET_NUMBER = K.TICKET_NUMBER "
+					+ "AND K.START_TIME >= TO_DATE(SYSDATE, 'YY/MM/DD/HH24'))");
+			System.out.println("현재 상영중인 영화 목록입니다..");
+			while (rs.next()) {
+				movieTitle = rs.getString(3);
+				movieIdList[i] = rs.getString(1); //MOVIE_ID
+				System.out.println(i + ". " + movieTitle);
+				i++;
+			}
+		} catch (Exception e) {
+			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
+		}
+		
+		int select;
+		while(true){
+			System.out.println("\n영화를 선택하면 상세 정보가 출력됩니다. (종료 0)");
+			select = scanner.nextInt();
+			if(select < i && select != 0){
+				String movieId = movieIdList[select];
+				try {
+					ResultSet rs = select(conn,
+							"SELECT * FROM MOVIE WHERE MOVIE_ID = '" + movieId +"'");
+					ResultSet rs2 = select(conn,
+							"SELECT ACTOR FROM ACTOR WHERE MOVIE_ID = '" + movieId + "'");
+
+					String runningTime = "";
+					String rating = "";
+					String director= "";
+					String movieInfo = "";
+					
+					while(rs.next()){
+						runningTime = rs.getString(2);
+						movieTitle = rs.getString(3);
+						rating = rs.getString(4);
+						director = rs.getString(5);
+						movieInfo = rs.getString(6);
+					}
+										
+					String[] actorList = new String[50];
+					int j = 0;
+					while(rs2.next()){
+						actorList[j] = rs2.getString(1);
+						j++;
+					}
+					
+					System.out.println("영화 : " + movieTitle);
+					System.out.println("감독 : " + director);
+					System.out.println("관람 가능 연령 : " + rating);
+					System.out.println("러닝타임 : " + runningTime);
+					System.out.print("출연진 : ");
+					
+					for(int index = 0; index < j; index++){
+						System.out.print(actorList[index] + " ");
+					}
+					
+					System.out.println("\n줄거리 : " + movieInfo);
+
+				} catch (Exception e) {
+					System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
+				}
+
+			}
+			else if(select == 0){
+				System.out.println("");
+				break;
+			}
+			else{
+				System.out.println("잘못된 입력입니다.");
+			}
+		}
+	}
+	
+
+	public void updateCustomerInfo(String customer_id) {
+		int select;
+		
+		while(true){
+			System.out.println("\n회원정보를 수정합니다. 원하시는 작업을 선택하세요.");
+			System.out.println("1. 회원정보 수정, 2. 회원 탈퇴");
+			select = scanner.nextInt();
+			
+			//1. 회원정보 수정을 선택한 경우
+			if(select == 1){
+
+				String newDate = "";
+				String attribute = "";
+				while(true){
+					System.out.println("\n수정하실 정보를 선택하세요.");
+					System.out.println("1. 비밀번호, 2. 휴대폰 번호, 3. 주소");
+					select = scanner.nextInt();
+					scanner.nextLine();
+					if(select == 1){
+						System.out.print("변경할 비밀번호를 입력하세요 : ");
+						newDate = scanner.nextLine();
+						attribute = "CUSTOMER_PASSWORD";
+						
+						try {
+							PreparedStatement pstmt = conn.prepareStatement(
+									"UPDATE CUSTOMER SET CUSTOMER_PASSWORD = ? WHERE CUSTOMER_ID = ?");
+							
+							pstmt.setString(1, newDate);
+							pstmt.setString(2, customer_id);
+							
+							int rowCount = pstmt.executeUpdate();
+							if(rowCount == 0) {
+								System.out.println("비밀번호 수정 실패");
+							} else {
+								System.out.println("비밀번호 수정 성공");
+							}
+						} catch (Exception e) {
+							System.out.println("[*]	UPDATE 오류 발생: \n" + e.getMessage());
+						}	
+						
+						break;
+					}
+
+					else if(select == 2){
+						System.out.print("변경할 휴대폰 번호를 입력하세요 : ");
+						newDate = scanner.nextLine();
+						attribute = "PHONE_NUMBER";
+						
+						try {
+							PreparedStatement pstmt = conn.prepareStatement(
+									"UPDATE CUSTOMER SET PHONE_NUMBER = ? WHERE CUSTOMER_ID = ?");
+							
+							pstmt.setString(1, newDate);
+							pstmt.setString(2, customer_id);
+							
+							int rowCount = pstmt.executeUpdate();
+							if(rowCount == 0) {
+								System.out.println("휴대폰 번호 수정 실패");
+							} else {
+								System.out.println("휴대폰 번호 수정 성공");
+							}
+						} catch (Exception e) {
+							System.out.println("[*]	UPDATE 오류 발생: \n" + e.getMessage());
+						}
+						
+						break;
+					}
+					else if(select == 3){
+						System.out.print("변경할 주소를 입력하세요 : ");
+						newDate = scanner.nextLine();
+						attribute = "ADDRESS";
+						
+						try {
+							PreparedStatement pstmt = conn.prepareStatement(
+									"UPDATE CUSTOMER SET ADDRESS = ? WHERE CUSTOMER_ID = ?");
+							
+							pstmt.setString(1, newDate);
+							pstmt.setString(2, customer_id);
+							
+							int rowCount = pstmt.executeUpdate();
+							if(rowCount == 0) {
+								System.out.println("주소 수정 실패");
+							} else {
+								System.out.println("주소 수정 성공");
+							}
+						} catch (Exception e) {
+							System.out.println("[*]	UPDATE 오류 발생: \n" + e.getMessage());
+						}
+						break;
+					}
+					else{
+						System.out.println("잘못된 입력입니다.");
+					}
+				}
+				break;
+			}
+			//2.탈퇴하기를 선택한 경우
+			else if(select == 2){
+				while(true){
+					System.out.println("\n정말 탈퇴하시겠습니까?");
+					System.out.println("1.탈퇴하기 , 2.취소");
+					select = scanner.nextInt();
+					if(select == 1){
+						try {
+							Statement stmt = conn.createStatement();
+							String query = "DELETE FROM CUSTOMER WHERE CUSTOMER_ID = '" + customer_id + "' ";
+							int rowCount = stmt.executeUpdate(query);
+							if(rowCount == 0) {
+								System.out.println("데이터 삭제 실패");
+							} else {
+								System.out.println("데이터 삭제 성공");
+							}
+						} catch (Exception e) {
+							System.out.println("[*]	DELETE 오류 발생: \n" + e.getMessage());
+						}
+						break;
+					}
+					else if(select == 2){
+						System.out.println("탈퇴가 취소되었습니다.");
+						break;
+					}
+					else{
+						System.out.println("잘못된 입력입니다.");
+					}
+				}
+				break;
+			}
+			else{
+				System.out.println("잘못된 입력입니다.");
+			}
+		}
 	}
 
 	private void selectCinema(String movieId) {
@@ -471,3 +793,4 @@ public class User {
 	}
 	
 }
+

@@ -11,9 +11,9 @@ public class MovieReservation {
 	public static void main(String[] args) {
 		String DRIVER = "oracle.jdbc.driver.OracleDriver";
 		String URL = "jdbc:oracle:thin:@127.0.0.1:1521:DBSERVER";
-		String USER = "KIM";
-		String PASS = "KIM";
-		
+		String USER = "KWON";
+		String PASS = "flrhs00";
+
 		Connection conn = null;
 		try{
 			Class.forName(DRIVER);
@@ -32,6 +32,7 @@ public class MovieReservation {
 		
 		User user = new User(conn);
 		Admin admin = new Admin(conn);
+
 		Scanner s = new Scanner(System.in);
 		int select;
 		while (true) {
@@ -46,6 +47,7 @@ public class MovieReservation {
 				admin.excute();
 				break;
 			case 3:
+				user.signUp();
 				break;
 			default:
 
