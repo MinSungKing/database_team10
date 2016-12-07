@@ -851,8 +851,8 @@ public class User {
 		int pointToUse = 0;
 		
 		System.out.println("1. 포인트 사용하기, 2. 포인트 사용하지 않기");
-		select = scanner.nextInt();
-		
+		int select = scanner.nextInt();
+
 		while(select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
 			select = scanner.nextInt();
@@ -891,7 +891,6 @@ public class User {
 				break;
 			default:
 		}
-		
 	}
 	
 	private void pay(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
@@ -925,7 +924,7 @@ public class User {
 		System.out.println("총액 : " + price);
 		System.out.println("1. 결제, 2. 취소");
 		System.out.print("결제를 하시겠습니까? : ");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
 
 		while (select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
@@ -941,13 +940,13 @@ public class User {
 			System.out.println("결제를 취소합니다.");
 			break;
 		default:
+		}
 	}
-	}
-
+	
 	private void reservate(String cinemaName, String theaterNumber, String movieStartTime, int seatCount, String payment, int pointToUse) {
 		System.out.println("1. 예매, 2. 취소");
 		System.out.print("예매를 하시겠습니까? : ");
-		select = scanner.nextInt();
+		int select = scanner.nextInt();
 		
 		while(select < 1 || select > 2) {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
