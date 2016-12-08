@@ -309,12 +309,12 @@ public class User {
 				System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
 				select = scanner.nextInt();
 			}
-			canelReservation(ticketNumberList.get(select), dateList.get(select));
+			cancelReservation(ticketNumberList.get(select), dateList.get(select));
 		}
 	}
 	
 
-	private void canelReservation(String ticketNumber, String date) {
+	private void cancelReservation(String ticketNumber, String date) {
 		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/HH");
 		String payment = null;
 		try {
