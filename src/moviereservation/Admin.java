@@ -1,6 +1,7 @@
 package moviereservation;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -29,16 +30,16 @@ public class Admin {
 			System.out.print("ID : ");
 			userId = scanner.nextLine();
 			scanner.reset();
-			// 아이디 저장하고
 			System.out.print("PW : ");
 			userPwd = scanner.nextLine();
-			System.out.println(userId);
+			if(!userId.equals("admin") && !userPwd.equals("admin")){
+				System.out.println("잘못된 접근입니다.");
+				continue;
+			}
 			query = "SELECT CUSTOMER_PASSWORD FROM CUSTOMER WHERE CUSTOMER_ID='" + userId + "'";
 			try {
 				rs = stmt.executeQuery(query);
 				rs.next();
-				System.out.println(rs.getString(1));
-				System.out.println(userId);
 
 				if (rs.getString(1).equals(userPwd)) {
 					System.out.println("로그인 성공");
@@ -129,25 +130,48 @@ public class Admin {
 			else
 				continue;
 		}
+		int temp = 0;
 
 		switch (menu) {
 		case 1:
 			registMovie();
 			break;
 		case 2:
-			System.out.print("영화를 수정합니다. 위에 있는 영화의 번호를 입력해주세요 : ");
-			int temp = scanner.nextInt();
-			// mList.get(temp); 여기에 해당 영화 아이디가 담겨져있음 인자로 넘겨서 삭제
+			System.out.println("영화를 수정합니다.");
+			while(true){
+				System.out.print("위에 있는 영화의 번호를 입력해주세요 : ");
+
+				temp = scanner.nextInt();
+				// mList.get(temp); 여기에 해당 영화 아이디가 담겨져있음 인자로 넘겨서 삭제
+				if(temp < 1 || temp >=mNum){
+					System.out.print("잘못된 입력입니다.");
+				}
+				else{
+					break;
+				}
+			}
 			modifyMovie(mList.get(temp));
 			break;
 		case 3:
 			System.out.print("영화를 삭제합니다. 위에 있는 영화의 번호를 입력해주세요 : ");
-			temp = scanner.nextInt();
-			// mList.get(temp); 여기에 해당 영화 아이디가 담겨져있음 인자로 넘겨서 삭제
+			
+			while(true){
+				temp = scanner.nextInt();
+				// mList.get(temp); 여기에 해당 영화 아이디가 담겨져있음 인자로 넘겨서 삭제
+				if(temp < 1 || temp >=mNum){
+					System.out.print("잘못된 입력입니다.");
+				}
+				else{
+					break;
+				}
+			}			// mList.get(temp); 여기에 해당 영화 아이디가 담겨져있음 인자로 넘겨서 삭제
 			deleteMovie(mList.get(temp));
 			break;
 		case 0:
 			adminMenu();
+			break;
+		default :
+			System.out.println("잘못된 입력입니다.\n");
 			break;
 		}
 
@@ -267,9 +291,18 @@ public class Admin {
 		int menu = 0;
 
 		System.out.println("\n1. 영화 정보 수정\t 2. 배우 추가\t 3. 배우 삭제\t0. 뒤로가기");
-		System.out.print("어떤 기능을 실행하시겠습니까? ");
-		menu = scanner.nextInt();
-		scanner.nextLine(); // 버퍼비우고
+		
+		while(true){
+			System.out.print("어떤 기능을 실행하시겠습니까? ");
+			menu = scanner.nextInt();
+			scanner.nextLine(); // 버퍼비우고
+			if(menu < 0 || menu > 3){
+				System.out.println("잘못된 입력입니다.\n");
+			}
+			else{
+				break;
+			}
+		}
 
 		switch (menu) {
 		case 1:
@@ -313,6 +346,9 @@ public class Admin {
 		case 0:
 			manageMovie();
 			break;
+		default:
+			System.out.println("잘못된 입력입니다.\n");
+			break;
 		}
 
 		// 여기까지 영화 삽입 과정 밑에는 배우 삽입
@@ -325,6 +361,7 @@ public class Admin {
 		String actor;
 		System.out.println("출연 배우를 추가합니다. (종료를 원하실땐 0 입력)");
 		while (true) {
+			System.out.println(movId);
 			// 밑에 쿼리는 해당 영화에 출연하는 배우들 목록을 뽑아오는 쿼리 계속 갱신될수 있기때문에 반복문안에 위치한다.
 			String actorQuery = "SELECT ACTOR FROM ACTOR WHERE MOVIE_ID='" + movId + "'";
 			boolean actorNotInTable = true;
@@ -333,9 +370,10 @@ public class Admin {
 				System.out.print("배우 이름 : ");
 				actor = scanner.nextLine();
 				// 입력값 0 일때 종료
-				if (actor.equals("0"))
+				if (actor.equals("0")){
+					System.out.println("배우 추가를 종료합니다.\n");
 					break;
-
+				}
 				while (rs.next()) {
 					if (actor.equals(rs.getString(1))) {
 						System.out.println("이미 해당 배우가 존재합니다.");
@@ -394,12 +432,24 @@ public class Admin {
 	}
 
 	private void deleteMovie(String movId) throws SQLException { // 영화 삭제
-		String query = "DELETE FROM MOVIE WHERE MOVIE_ID='" + movId + "'";
-		try {
-			stmt.executeQuery(query);
-			System.out.println("해당 영화가 삭제되었습니다.");
-		} catch (Exception e) {
-			System.out.println("삭제가 실패했습니다.");
+		String query = "";
+		
+		query = "SELECT DISTINCT MOVIE_ID FROM THEATER";
+		rs = stmt.executeQuery(query);
+		boolean play = false;
+		while(rs.next()){
+			if(rs.getString(1).equals(movId)){
+				play = true;
+			}
+		}
+		if(!play){
+			query = "DELETE FROM MOVIE WHERE MOVIE_ID='" + movId + "'";
+			try {
+				stmt.executeQuery(query);
+				System.out.println("해당 영화가 삭제되었습니다.");
+			} catch (Exception e) {
+				System.out.println("삭제가 실패했습니다.");
+			}
 		}
 		// 삭제 실행하고. 다시 메뉴 선택으로 돌아간다.
 		manageMovie();
@@ -468,7 +518,7 @@ public class Admin {
 			modifyCinema(cinemaList.get(num));
 			break;
 		case 3:
-			System.out.print("수정할 영화관의 번호를 입력해주세요 : ");
+			System.out.print("삭제할 영화관의 번호를 입력해주세요 : ");
 			num = scanner.nextInt();
 			scanner.nextLine();
 			// 리스트에 해당 영화관 이름이 담겨져있음 인자로 넘겨서 수정
@@ -559,7 +609,10 @@ public class Admin {
 
 	private void deleteCinema(String cinemaName) throws SQLException { // 영화관 삭제
 		System.out.println("\n 영화관을 삭제합니다.");
-		String query = "DELETE FROM CINEMA WHERE CINEMA_NAME='" + cinemaName + "'";
+		
+		String query = "SELECT DISTINCT MOVIE_ID FROM THEATER";
+		
+		query = "DELETE FROM CINEMA WHERE CINEMA_NAME='" + cinemaName + "'";
 		try {
 			stmt.executeQuery(query);
 			System.out.println("해당 영화관이 삭제되었습니다.");
@@ -1104,7 +1157,7 @@ public class Admin {
 					int select = scanner.nextInt();
 					
 					if(select == 1){
-						selectPoint(price * seatCount, userId);
+						selectPoint(price, seatCount, userId);
 						query = "UPDATE TICKET SET PAYMENT='X' WHERE TICKET_NUMBER='" + ticketNumber + "'";
 						stmt.executeQuery(query);
 						break;
@@ -1127,7 +1180,7 @@ public class Admin {
 		adminMenu();
 	}
 	
-	private void selectPoint(int price, String userId) {
+	private void selectPoint(int price, int seatCount, String userId) {
 		int availablePoint = 0;
 		int pointToUse = 0;
 		
@@ -1162,7 +1215,7 @@ public class Admin {
 						pointToUse = scanner.nextInt();
 					}
 					
-					pay(price, pointToUse);
+					pay(price, pointToUse, seatCount, userId);
 					
 				} catch(SQLException e) {
 					e.printStackTrace();
@@ -1171,15 +1224,15 @@ public class Admin {
 				break;
 			case 2:
 				pointToUse = 0;
-				pay(price, pointToUse);
+				pay(price, pointToUse, seatCount, userId);
 				break;
 			default:
 		}
 		
 	}
 	
-	private void pay(int priceForPay, int pointToUse) {
-		int price = priceForPay;
+	private void pay(int priceForPay, int pointToUse, int seatCount, String userId) {
+		int price = priceForPay * seatCount;
 		if (price >= pointToUse)
 			price -= pointToUse;
 		else {
@@ -1198,6 +1251,39 @@ public class Admin {
 			System.out.println("잘못된 명령입니다. 다시 입력하세요 : ");
 			select = scanner.nextInt();
 		}
+		
+		switch(select) {
+		case 1:
+			try{
+				PreparedStatement pstmt = conn.prepareStatement(
+						"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT - ? "
+						+ "WHERE CUSTOMER_ID = ?");
+				pstmt.setInt(1, pointToUse);
+				pstmt.setString(2, userId);
+				int rowCount = pstmt.executeUpdate();
+				if(rowCount == 0)
+					System.out.println("고객 포인트 차감 실패");
+				
+				pstmt = conn.prepareStatement(
+						"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT + ? * 100 "
+						+ "WHERE CUSTOMER_ID = ?");
+				pstmt.setInt(1, seatCount);
+				pstmt.setString(2, userId);
+				rowCount = pstmt.executeUpdate();
+				if(rowCount == 0)
+					System.out.println("고객 포인트 증가 실패");
+				
+				
+				System.out.println("예매가 완료되었습니다.");
+			} catch(SQLException e) {
+				e.printStackTrace();
+			}
+			break;
+		case 2:
+			System.out.println("예매를 취소합니다.");
+			break;
+		default:
+	}
 		
 		switch(select) {
 		case 1:
