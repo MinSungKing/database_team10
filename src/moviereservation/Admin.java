@@ -408,7 +408,7 @@ public class Admin {
 	private void checkVIP() throws SQLException { // vip 고객 관리
 		// vip를 순서대로 뽑아오는 작업
 		String query = "SELECT SUM(T.SEAT_COUNT) AS TOTAL_SEAT_COUNT, R.CUSTOMER_ID " + "FROM TICKET T, RESERVATION R "
-				+ "WHERE T.START_TIME >= TO_DATE(SYSDATE -60, 'YY/MM/DD/HH24') AND R.TICKET_NUMBER = T.TICKET_NUMBER "
+				+ "WHERE T.START_TIME >= TO_DATE(SYSDATE -30, 'YY/MM/DD/HH24') AND R.TICKET_NUMBER = T.TICKET_NUMBER "
 				+ "GROUP BY R.CUSTOMER_ID " + "ORDER BY TOTAL_SEAT_COUNT DESC";
 
 		int i = 1;
@@ -872,13 +872,18 @@ public class Admin {
 				System.out.println("상영 시간은 0시부터 23시 사이의 시간입니다.");
 			}
 
+			String startTime;
+			if(timeForDelete < 10)
+				startTime = "0" + timeForDelete;
+			else
+				startTime = "" + timeForDelete;
 			boolean find = false;
 			for (int index = 0; index < i; index++) {
 				if (startTimeList[index] == timeForDelete) {
 					try {
 						Statement stmt = conn.createStatement();
 						String query3 = "DELETE FROM SCHEDULE WHERE CINEMA_NAME = '" + cinemaName
-								+ "' AND THEATER_NUMBER = '" + theaterNumber + "' AND START_TIME = '" + timeForDelete
+								+ "' AND THEATER_NUMBER = '" + theaterNumber + "' AND START_TIME = '" + startTime
 								+ "'";
 						int rowCount = stmt.executeUpdate(query3);
 						if (rowCount == 0) {
@@ -950,11 +955,16 @@ public class Admin {
 			}
 			int index;
 			boolean insert = false;
+			String startTime;
+			if(timeForAdd < 10)
+				startTime = "0" + timeForAdd;
+			else
+				startTime = "" + timeForAdd;
 			if (i == 0) {
 				try {
 					Statement stmt = conn.createStatement();
 					String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber + "', '"
-							+ timeForAdd + "')";
+							+ startTime + "')";
 					System.out.println(query);
 					int rowCount = stmt.executeUpdate(query);
 					if (rowCount == 0) {
@@ -973,7 +983,7 @@ public class Admin {
 								try {
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + timeForAdd + "')";
+											+ "', '" + startTime + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -994,7 +1004,7 @@ public class Admin {
 								try {
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-											+ "', '" + timeForAdd + "')";
+											+ "', '" + startTime + "')";
 									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
@@ -1018,7 +1028,7 @@ public class Admin {
 						try {
 							Statement stmt = conn.createStatement();
 							String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
-									+ "', '" + timeForAdd + "')";
+									+ "', '" + startTime + "')";
 							System.out.println(query);
 							int rowCount = stmt.executeUpdate(query);
 							if (rowCount == 0) {
