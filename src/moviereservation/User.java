@@ -39,7 +39,6 @@ public class User {
 		}
 	}
 	
-
 	public void signUp(){
 		String userId = "";
 		String userPwd = "";
@@ -50,6 +49,7 @@ public class User {
 		int userPoint = 0;
 
 		while (true) {
+			scanner = new Scanner(System.in);
 			System.out.println("회원가입");
 			System.out.print("ID : ");
 			userId = scanner.nextLine();
@@ -73,7 +73,6 @@ public class User {
 						Statement stmt = conn.createStatement();
 						String query = "INSERT INTO CUSTOMER VALUES('"+ userId + "', '" + userPwd + "', '" + userName + "', '" + userBirthday
 								+ "', '" + userPhoneNumber + "', '" + userAddress + "', '" + userPoint + "')";
-						System.out.println(query);
 						int rowCount = stmt.executeUpdate(query);
 						if(rowCount == 0) {
 							System.out.println("데이터 삽입 실패");
@@ -106,6 +105,11 @@ public class User {
 			System.out.print("PW : ");
 			userPwd = scanner.nextLine();
 			
+			if(userId.equals("admin")){
+				System.out.println("존재하지 않는 아이디 입니다.");
+				continue;
+			}
+			
 			try {
 				PreparedStatement pstmt = conn.prepareStatement(
 						"SELECT CUSTOMER_PASSWORD FROM CUSTOMER WHERE CUSTOMER_ID = ?");
@@ -116,7 +120,11 @@ public class User {
 				if(rs.next())
 					pw = rs.getString(1);
 				
-				if(pw.equals(userPwd)) {
+				if(pw == null){
+					System.out.println("존재하지 않는 아이디 입니다.");
+				}
+				
+				else if(pw.equals(userPwd)) {
 					System.out.println("로그인 성공");
 					break;
 				}
@@ -124,7 +132,6 @@ public class User {
 				else 
 					System.out.println("비밀번호를 잘못 입력하셨습니다.");
 			} catch(SQLException e) {
-				System.out.println("아이디를 잘못 입력하셨습니다.");
 				e.printStackTrace();
 			}
 		}
@@ -267,6 +274,7 @@ public class User {
 					System.out.println("없는 티켓 번호입니다." + e.getMessage());
 				}
 				
+
 				System.out.println( number++ + ". " + title + "    " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
 			}
 		} catch (Exception e) {
@@ -301,12 +309,12 @@ public class User {
 				System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
 				select = scanner.nextInt();
 			}
-			canelReservation(ticketNumberList.get(select), dateList.get(select));
+			cancelReservation(ticketNumberList.get(select), dateList.get(select));
 		}
 	}
 	
 
-	private void canelReservation(String ticketNumber, String date) {
+	private void cancelReservation(String ticketNumber, String date) {
 		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/HH");
 		String payment = null;
 		try {
@@ -793,12 +801,17 @@ public class User {
 			select = scanner.nextInt();
 		}
 		
+		boolean today = false;
+		if(select == 1){
+			today = true;
+		}
+		
 		date = dateList.get(select);
 		
-		selectTheather(movieId, cinemaName, date);
+		selectTheather(movieId, cinemaName, date, today);
 	}
 
-	private void selectTheather(String movieId, String cinemaName, String date) {
+	private void selectTheather(String movieId, String cinemaName, String date, boolean today) {
 		int Number = 1;
 		String theaterNumber = null;
 		ArrayList<String> theaterList = new ArrayList<>();
@@ -831,15 +844,15 @@ public class User {
 			e.printStackTrace();
 		}
 		
-		selectTime(cinemaName, theaterNumber, date);
+		selectTime(cinemaName, theaterNumber, date, today);
 	}
 
-	private void selectTime(String cinemaName, String theaterNumber, String date) {
+	private void selectTime(String cinemaName, String theaterNumber, String date, boolean today) {
 		int Number = 1;
 		String startTime = null;
 		ArrayList<String> timeList = new ArrayList<>();
 		timeList.add(null);
-		
+				
 		try {
 			PreparedStatement pstmt = conn.prepareStatement(
 					"SELECT START_TIME FROM SCHEDULE "
@@ -849,8 +862,19 @@ public class User {
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
-				timeList.add(rs.getString(1));
-				System.out.println(Number++ + ". " + rs.getString(1));
+				if(today){
+					Calendar cal = Calendar.getInstance();
+					cal.setTime(new Date());
+					
+					if(Integer.parseInt(rs.getString(1)) > cal.get(Calendar.HOUR_OF_DAY)){
+						timeList.add(rs.getString(1));
+						System.out.println(Number++ + ". " + rs.getString(1));
+					}
+				}
+				else{
+					timeList.add(rs.getString(1));
+					System.out.println(Number++ + ". " + rs.getString(1));
+				}
 			}
 			
 			System.out.print("예매할 시간 번호 : ");
@@ -921,11 +945,16 @@ public class User {
 			System.out.println("예약 가능한 자리 : " + (seatingCapacity - reservedSeatCount));
 			System.out.println("예약할 자리 수 : ");
 			seatCount = scanner.nextInt();
-			
-			if(seatCount < 1 || seatCount > (seatingCapacity - reservedSeatCount)) {
-				System.out.println("잘못된 명령입니다. 다시 입력하세요. : ");
-				seatCount = scanner.nextInt();
+			while(true){
+				if(seatCount < 1 || seatCount > (seatingCapacity - reservedSeatCount)) {
+					System.out.println("잘못된 명령입니다. 다시 입력하세요. : ");
+					seatCount = scanner.nextInt();
+				}
+				else{
+					break;
+				}
 			}
+
 			System.out.println("1. 인터넷 결제, 2. 현장 결제, 3. 예매 취소");
 			int select = scanner.nextInt();
 			
