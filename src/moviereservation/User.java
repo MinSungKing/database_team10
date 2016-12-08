@@ -16,13 +16,12 @@ public class User {
 	private String userPwd;
 	private Scanner scanner;
 	private Connection conn;
-	private static int ticketNumber = 3004;
+	private static int ticketNumber = 3002;
 	
 	public User(Connection conn) {
 		this.conn = conn;
 	}
 	
-
 	public void signUp(){
 		String userId = "";
 		String userPwd = "";
@@ -211,7 +210,7 @@ public class User {
 					+ "AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + userId + "')");
 			System.out.println("예매 현황입니다.");
 			
-			System.out.println("영화제목       티켓 번호                         시작 시간                          좌석 수        결제여부 ");
+			System.out.println("  영화제목       티켓 번호                         시작 시간                          좌석 수        결제여부 ");
 			
 			
 			while(rs.next()) {
@@ -224,6 +223,7 @@ public class User {
 				dateList.add(format.format(rs.getDate(2)));
 				seatCountList.add(rs.getInt(3));
 				try {
+					Statement stmt = conn.createStatement();
 					String query = "SELECT CINEMA_NAME, THEATER_NUMBER FROM RESERVATION WHERE TICKET_NUMBER='" + ticketNumber + "'";
 					rs.close();
 					rs = stmt.executeQuery(query);
@@ -249,7 +249,7 @@ public class User {
 					System.out.println("없는 티켓 번호입니다." + e.getMessage());
 				}
 				
-				System.out.println(number++ + ". " + " " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+				System.out.println(number++ + ". " + title + "    " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
 			}
 		} catch (Exception e) {
 			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
