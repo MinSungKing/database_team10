@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -220,7 +221,7 @@ public class User {
 		int number = 1;
 		String ticketNumber, seatCount, payment;
 		String startTime;
-		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/");
+		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/HH");
 		ArrayList<String> ticketNumberList = new ArrayList<>();
 		ticketNumberList.add(null);
 		ArrayList<String> dateList = new ArrayList<>();
@@ -249,27 +250,27 @@ public class User {
 				seatCountList.add(rs.getInt(3));
 				try {
 					String query = "SELECT CINEMA_NAME, THEATER_NUMBER FROM RESERVATION WHERE TICKET_NUMBER='" + ticketNumber + "'";
-					rs.close();
-					rs = stmt.executeQuery(query);
-					rs.next();
-								
-					String cinemaName = rs.getString(1);
-					String theaterNumber = rs.getString(2);
+					
+					ResultSet rs2 = stmt.executeQuery(query);
+					rs2.next();
+					String cinemaName = rs2.getString(1);
+					String theaterNumber = rs2.getString(2);
 					
 					query = "SELECT MOVIE_ID FROM THEATER WHERE CINEMA_NAME = '" + cinemaName
 							+ "' AND THEATER_NUMBER = '" + theaterNumber +"'";
 					
-					rs = stmt.executeQuery(query);
-					rs.next();
-					String movie_id = rs.getString(1);
+					ResultSet rs3 = stmt.executeQuery(query);
+					rs3.next();
+					String movie_id = rs3.getString(1);
 					
 					query = "SELECT TITLE FROM MOVIE WHERE MOVIE_ID = '" + movie_id + "'";
 
-					rs = stmt.executeQuery(query);
-					rs.next();
-					title = rs.getString(1);
+					ResultSet rs4 = stmt.executeQuery(query);
+					rs4.next();
+					title = rs4.getString(1);
 					
 				} catch (Exception e) {
+					e.printStackTrace();
 					System.out.println("없는 티켓 번호입니다." + e.getMessage());
 				}
 				
@@ -280,10 +281,10 @@ public class User {
 			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
 		}
 		
-		System.out.println("0. 종료, 1. 예약 정보 수정");
+		System.out.println("0. 종료, 1. 예약 정보 수정, 2. 예약 취소");
 		int select = scanner.nextInt();
 		
-		while(select < 0 || select > 1) {
+		while(select < 0 || select > 2) {
 			System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
 			select = scanner.nextInt();
 		}
@@ -299,8 +300,95 @@ public class User {
 			
 			fixReservation(ticketNumberList.get(select), dateList.get(select), seatCountList.get(select));
 		}
+		
+		if(select == 2) {
+			System.out.println("취소할 티켓 번호를 선택해 주세요.");
+			select = scanner.nextInt();
+			
+			while(select < 1 || select >= number) {
+				System.out.print("잘못된 입력입니다. 다시 입력하세요. : ");
+				select = scanner.nextInt();
+			}
+			canelReservation(ticketNumberList.get(select), dateList.get(select));
+		}
 	}
 	
+
+	private void canelReservation(String ticketNumber, String date) {
+		SimpleDateFormat format = new SimpleDateFormat("yy/MM/dd/HH");
+		String payment = null;
+		try {
+			Date reservedDate = format.parse(date);
+			Date currentDate = format.parse(format.format(new Date()));
+			if(reservedDate.compareTo(currentDate) > 0) {
+				System.out.println("삭제 가능");
+				try {
+					PreparedStatement pstmt = conn.prepareStatement(
+							"SELECT PAYMENT FROM TICKET WHERE TICKET_NUMBER = ?");
+					pstmt.setString(1, ticketNumber);
+					ResultSet rs = pstmt.executeQuery();
+					if(rs.next())
+						payment = rs.getString(1);
+					
+					if(payment.equals("X"))
+						System.out.println("발권을 받으셔서 취소할 수 없습니다.");
+					else if(payment.equals("DIRECT")) {
+						PreparedStatement pstmt2 = conn.prepareStatement(
+								"DELETE FROM TICKET WHERE TICKET_NUMBER = ?");
+						pstmt2.setString(1, ticketNumber);
+						int rowCount = pstmt2.executeUpdate();
+						if(rowCount == 0)
+							System.out.println("티켓 삭제 오류");
+						System.out.println("결제 전 취소이므로, 환불없이 예매를 취소했습니다.");
+					}
+					else if(payment.equals("INTERNET")) {
+						try {
+							PreparedStatement pstmt2 = conn.prepareStatement(
+									"SELECT SEAT_COUNT FROM TICKET WHERE TICKET_NUMBER = ?");
+							pstmt2.setString(1, ticketNumber);
+							ResultSet rs2 = pstmt2.executeQuery();
+							rs2.next();
+							int seatCount = rs2.getInt(1);
+							
+							PreparedStatement pstmt3 = conn.prepareStatement(
+									"DELETE FROM TICKET WHERE TICKET_NUMBER = ?");
+							pstmt3.setString(1, ticketNumber);
+							int rowCount = pstmt3.executeUpdate();
+							if(rowCount == 0)
+								System.out.println("티켓 삭제 오류");
+							else {
+								PreparedStatement pstmt4 = conn.prepareStatement(
+										"UPDATE CUSTOMER SET CUSTOMER_POINT = CUSTOMER_POINT - ?"
+										+ "WHERE CUSTOMER_ID = ?");
+								pstmt4.setInt(1, seatCount * 100);
+								pstmt4.setString(2, userId);
+								int rowCount2 = pstmt4.executeUpdate();
+								if(rowCount2 == 0)
+									System.out.println("포인트 차감 오류");
+								else
+									System.out.println("에매 취소가 완료되었습니다. 포인트가 차감되고 결제 금액이 환불되었습니다.");
+							}
+							
+							
+						} catch(SQLException e) {
+							e.printStackTrace();
+						}
+					}
+					else
+						System.out.println("결제방식을 가져오다 오류가 생겼습니다.");
+						
+				} catch(SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.out.println("날짜가 지나서 취소할 수 없습니다.");
+			}
+		} catch (ParseException e) {
+			e.printStackTrace();
+		}
+	}
+
 
 	private void fixReservation(String ticketNumber, String date, int seatCount) {
 		int number = 1;
@@ -362,7 +450,7 @@ public class User {
 			select = scanner.nextInt();
 		}
 		
-		String movieStartTime = date + startTimeList.get(select);
+		String movieStartTime = date.substring(0, date.length() - 3) + startTimeList.get(select);
 		int seatingCapacity = 0;
 		int reservedSeatCount = 0;
 		
