@@ -16,10 +16,30 @@ public class User {
 	private String userPwd;
 	private Scanner scanner;
 	private Connection conn;
+<<<<<<< HEAD
 	private static int ticketNumber = 3002;
+=======
+	private static int ticketNumber;
+>>>>>>> c5fe4555f5e965159e0680bcf0306c2749ead81c
 	
 	public User(Connection conn) {
 		this.conn = conn;
+		String initTicketNumber;
+		try {
+			Statement stmt = conn.createStatement();
+			ResultSet rs = stmt.executeQuery(
+					"SELECT TICKET_NUMBER FROM TICKET "
+					+ "ORDER BY TICKET_NUMBER DESC");
+			if(rs.next())
+				initTicketNumber = rs.getString(1);
+			else
+				initTicketNumber = "T0000";
+			
+			ticketNumber = Integer.parseInt(initTicketNumber.substring(1, initTicketNumber.length())) + 1;
+			System.out.println(ticketNumber);
+		} catch(SQLException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public void signUp(){
@@ -205,7 +225,8 @@ public class User {
 		seatCountList.add(null);
 		
 		try {
-
+			Statement stmt = conn.createStatement();
+			
 			ResultSet rs = select(conn, "SELECT * FROM TICKET WHERE (PAYMENT = 'INTERNET' OR PAYMENT = 'DIRECT') "
 					+ "AND TICKET_NUMBER IN (SELECT TICKET_NUMBER FROM RESERVATION WHERE CUSTOMER_ID = '" + userId + "')");
 			System.out.println("예매 현황입니다.");
@@ -249,7 +270,11 @@ public class User {
 					System.out.println("없는 티켓 번호입니다." + e.getMessage());
 				}
 				
+<<<<<<< HEAD
 				System.out.println(number++ + ". " + title + "    " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+=======
+				System.out.println( number++ + ". " + title + "    " + ticketNumber + "    " + startTime + "       " + seatCount + "       " + payment);
+>>>>>>> c5fe4555f5e965159e0680bcf0306c2749ead81c
 			}
 		} catch (Exception e) {
 			System.out.println("[*]	질의 결과 출력 오류 발생: \n" + e.getMessage());
