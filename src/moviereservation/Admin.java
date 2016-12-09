@@ -329,7 +329,6 @@ public class Admin {
 			// 영화정보 수정 쿼리
 			query = "UPDATE MOVIE SET TITLE='" + title + "', DIRECTOR ='" + director + "', RUNNINGTIME=" + runningTime
 					+ "," + " RATING =" + rating + ", MOVIE_INFO='" + movInfo + "' WHERE MOVIE_ID='" + movId + "'";
-			System.out.println(query);
 			try {
 				stmt.executeQuery(query);
 				System.out.println("영화 정보가 수정되었습니다.");
@@ -440,6 +439,8 @@ public class Admin {
 		while(rs.next()){
 			if(rs.getString(1).equals(movId)){
 				play = true;
+				System.out.println("해당 영화를 상영중인 상영관이 존재합니다.");
+				System.out.println("삭제가 불가능합니다.");
 			}
 		}
 		if(!play){
@@ -514,6 +515,15 @@ public class Admin {
 			System.out.print("수정할 영화관의 번호를 입력해주세요 : ");
 			int num = scanner.nextInt();
 			scanner.nextLine();
+			while(true){
+				if(num < cinemaList.size()){
+					break;
+				}
+				else{
+					System.out.print("잘못된 입력입니다.");
+					num = scanner.nextInt();
+				}
+			}
 			// 리스트에 해당 영화관 이름이 담겨져있음 인자로 넘겨서 수정
 			modifyCinema(cinemaList.get(num));
 			break;
@@ -521,6 +531,15 @@ public class Admin {
 			System.out.print("삭제할 영화관의 번호를 입력해주세요 : ");
 			num = scanner.nextInt();
 			scanner.nextLine();
+			while(true){
+				if(num < cinemaList.size()){
+					break;
+				}
+				else{
+					System.out.print("잘못된 입력입니다.");
+					num = scanner.nextInt();
+				}
+			}
 			// 리스트에 해당 영화관 이름이 담겨져있음 인자로 넘겨서 수정
 			deleteCinema(cinemaList.get(num));
 			break;
@@ -528,6 +547,17 @@ public class Admin {
 			System.out.println("어떤 영화관의 상영관을 관리할지 번호를 입력해주세요 : ");
 			num = scanner.nextInt();
 			scanner.nextLine();
+			
+			while(true){
+				if(num < cinemaList.size()){
+					break;
+				}
+				else{
+					System.out.print("잘못된 입력입니다.");
+					num = scanner.nextInt();
+				}
+			}
+			
 			manageTheater(cinemaList.get(num));
 			break;
 		case 0:
@@ -610,9 +640,7 @@ public class Admin {
 	private void deleteCinema(String cinemaName) throws SQLException { // 영화관 삭제
 		System.out.println("\n 영화관을 삭제합니다.");
 		
-		String query = "SELECT DISTINCT MOVIE_ID FROM THEATER";
-		
-		query = "DELETE FROM CINEMA WHERE CINEMA_NAME='" + cinemaName + "'";
+		String query = "DELETE FROM CINEMA WHERE CINEMA_NAME='" + cinemaName + "'";
 		try {
 			stmt.executeQuery(query);
 			System.out.println("해당 영화관이 삭제되었습니다.");
@@ -651,8 +679,12 @@ public class Admin {
 			menu = scanner.nextInt();
 			scanner.nextLine();
 
-			if (0 <= menu && menu <= 3)
+			if (0 <= menu && menu <= 3){
 				break;
+			}
+			else{
+				System.out.print("잘못된 입력입니다.");
+			}
 		}
 		switch (menu) {
 		case 1:
@@ -661,11 +693,29 @@ public class Admin {
 		case 2:
 			System.out.print("수정할 상영관의 영화의 번호를 입력해주세요 : ");
 			int temp = scanner.nextInt();
+			while(true){
+				if(temp < theaterList.size()){
+					break;
+				}
+				else{
+					System.out.print("잘못된 입력입니다.");
+					temp = scanner.nextInt();
+				}
+			}
 			modifyTheater(cName, theaterList.get(temp));
 			break;
 		case 3:
 			System.out.print("삭제할 상영관의 영화의 번호를 입력해주세요 : ");
 			temp = scanner.nextInt();
+			while(true){
+				if(temp < theaterList.size()){
+					break;
+				}
+				else{
+					System.out.print("잘못된 입력입니다.");
+					temp = scanner.nextInt();
+				}
+			}
 			deleteTheater(cName, theaterList.get(temp));
 			break;
 		case 0:
@@ -1018,7 +1068,6 @@ public class Admin {
 					Statement stmt = conn.createStatement();
 					String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber + "', '"
 							+ startTime + "')";
-					System.out.println(query);
 					int rowCount = stmt.executeUpdate(query);
 					if (rowCount == 0) {
 						System.out.println("데이터 삽입 실패");
@@ -1037,7 +1086,6 @@ public class Admin {
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
 											+ "', '" + startTime + "')";
-									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
 										System.out.println("데이터 삽입 실패");
@@ -1058,7 +1106,6 @@ public class Admin {
 									Statement stmt = conn.createStatement();
 									String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
 											+ "', '" + startTime + "')";
-									System.out.println(query);
 									int rowCount = stmt.executeUpdate(query);
 									if (rowCount == 0) {
 										System.out.println("데이터 삽입 실패");
@@ -1082,7 +1129,6 @@ public class Admin {
 							Statement stmt = conn.createStatement();
 							String query = "INSERT INTO SCHEDULE VALUES('" + cinemaName + "', '" + theaterNumber
 									+ "', '" + startTime + "')";
-							System.out.println(query);
 							int rowCount = stmt.executeUpdate(query);
 							if (rowCount == 0) {
 								System.out.println("데이터 삽입 실패");
